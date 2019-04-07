@@ -3,9 +3,11 @@
 
 - name: Purge comments and emptylines
   lineinfile:
+    backup: true
     state: absent
     path: "{{ ssh_config_file }}"
     regexp: "{{ item }}"
+    validate: "/usr/sbin/sshd -t -f %s"
   with_items:
     - "^#.*"
     - "^\\s*$"
@@ -13,10 +15,12 @@
 
 - name: Modify configuration
   lineinfile:
+    backup: true
     state: present
     path: "{{ ssh_config_file }}"
     line: "{{ item.line }}"
     regexp: "^{{ item.regexp }}.*"
+    validate: "/usr/sbin/sshd -t -f %s"
   with_items:
     - {'line': 'Port {{ ssh_port | default(22) }}', 'regexp': 'Port'}
     - {'line': 'PubkeyAuthentication yes', 'regexp': 'PubkeyAuthentication'}
@@ -37,11 +41,10 @@
     - {'line': 'PrintMotd no', 'regexp': 'PrintMotd'}
   register: sshd_config
 
-- name: Restart sshd
-  when: sshd_config.changed
+- name: (re)start sshd
   service:
     name: sshd
-    state: restarted
+    state: "{% if sshd_config.changed %}restarted{% else %}started{% endif %}"
 
 - name: "iptables: Allow new incoming connections to ssh port"
   iptables:
@@ -51,4 +54,13 @@
     ctstate: NEW,ESTABLISHED
     jump: ACCEPT
     comment: Allow new incoming connections to ssh port
+
+- name: "iptables: Allow sshd ESTABLISHED connections"
+  iptables:
+    chain: INPUT
+    protocol: tcp
+    source_port: "{{ ssh_port|default(22) }}"
+    ctstate: ESTABLISHED
+    jump: ACCEPT
+    comment: Allow outgoing sshd connections
   when: manage_iptables
