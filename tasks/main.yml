@@ -11,7 +11,6 @@
   with_items:
     - "^#.*"
     - "^\\s*$"
-    - "UsePAM.*"
 
 - name: Modify configuration
   lineinfile:
@@ -39,6 +38,9 @@
     - {'line': 'UseDNS no', 'regexp': 'UseDNS'}
     - {'line': 'AuthorizedKeysFile .ssh/authorized_keys', 'regexp': 'AuthorizedKeysFile'}
     - {'line': 'PrintMotd no', 'regexp': 'PrintMotd'}
+    - {'line': 'Banner none', 'regexp': 'Banner'}
+    - {'line': 'PrintLastLog yes', 'regexp': 'PrintLastLog'}
+    - {'line': 'UsePAM yes', 'regexp': 'UsePAM'}
   register: sshd_config
 
 - name: (re)start sshd
