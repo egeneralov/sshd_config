@@ -1,2 +1,9 @@
 ---
 # defaults file for egeneralov.sshd_config
+
+ssh_port: 22
+ssh_bind: 0.0.0.0
+
+ssh_config_file: /etc/ssh/sshd_config
+
+manage_iptables: false

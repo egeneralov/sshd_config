@@ -1,2 +1,54 @@
 ---
 # tasks file for egeneralov.sshd_config
+
+- name: Purge comments and emptylines
+  lineinfile:
+    state: absent
+    path: "{{ ssh_config_file }}"
+    regexp: "{{ item }}"
+  with_items:
+    - "^#.*"
+    - "^\\s*$"
+    - "UsePAM.*"
+
+- name: Modify configuration
+  lineinfile:
+    state: present
+    path: "{{ ssh_config_file }}"
+    line: "{{ item.line }}"
+    regexp: "^{{ item.regexp }}.*"
+  with_items:
+    - {'line': 'Port {{ ssh_port | default(22) }}', 'regexp': 'Port'}
+    - {'line': 'PubkeyAuthentication yes', 'regexp': 'PubkeyAuthentication'}
+    - {'line': 'ListenAddress {{ ssh_bind | default("0.0.0.0") }}', 'regexp': 'ListenAddress'}
+    - {'line': 'SyslogFacility AUTH', 'regexp': 'SyslogFacility'}
+    - {'line': 'LogLevel INFO', 'regexp': 'LogLevel'}
+    - {'line': 'LoginGraceTime 10s', 'regexp': 'LoginGraceTime'}
+    - {'line': 'PermitRootLogin without-password', 'regexp': 'PermitRootLogin'}
+    - {'line': 'MaxAuthTries 2', 'regexp': 'MaxAuthTries'}
+    - {'line': 'PasswordAuthentication no', 'regexp': 'PasswordAuthentication'}
+    - {'line': 'PermitEmptyPasswords no', 'regexp': 'PermitEmptyPasswords'}
+    - {'line': 'ChallengeResponseAuthentication yes', 'regexp': 'ChallengeResponseAuthentication'}
+    - {'line': 'GatewayPorts yes', 'regexp': 'GatewayPorts'}
+    - {'line': 'AllowAgentForwarding yes', 'regexp': 'AllowAgentForwarding'}
+    - {'line': 'PubkeyAuthentication yes', 'regexp': 'PubkeyAuthentication'}
+    - {'line': 'UseDNS no', 'regexp': 'UseDNS'}
+    - {'line': 'AuthorizedKeysFile .ssh/authorized_keys', 'regexp': 'AuthorizedKeysFile'}
+    - {'line': 'PrintMotd no', 'regexp': 'PrintMotd'}
+  register: sshd_config
+
+- name: Restart sshd
+  when: sshd_config.changed
+  service:
+    name: sshd
+    state: restarted
+
+- name: "iptables: Allow new incoming connections to ssh port"
+  iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ ssh_port|default(22) }}"
+    ctstate: NEW,ESTABLISHED
+    jump: ACCEPT
+    comment: Allow new incoming connections to ssh port
+  when: manage_iptables
