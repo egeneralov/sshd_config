@@ -1,5 +1,5 @@
 ---
-- hosts: localhost
+- hosts: ssh
   remote_user: root
   roles:
     - egeneralov.sshd_config
