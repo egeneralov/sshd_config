@@ -1,0 +1,6 @@
+---
+
+- hosts: localhost
+  roles:
+    - egeneralov.sshd_config
+
